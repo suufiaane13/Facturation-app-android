@@ -1,0 +1,139 @@
+import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { useFonts } from 'expo-font';
+import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import { useEffect, useState } from 'react';
+import { Asset } from 'expo-asset';
+import 'react-native-reanimated';
+
+import { useColorScheme } from '@/components/useColorScheme';
+import { ThemeProvider as AppThemeProvider } from '@/components/ThemeProvider';
+import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
+import { db } from '@/db/client';
+import migrations from '@/drizzle/migrations';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+
+export {
+  ErrorBoundary,
+} from 'expo-router';
+
+export const unstable_settings = {
+  initialRouteName: '(tabs)',
+};
+
+SplashScreen.preventAutoHideAsync();
+
+export default function RootLayout() {
+  const { success, error: migrationError } = useMigrations(db, migrations);
+  const [loaded, error] = useFonts({
+    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    ...FontAwesome.font,
+  });
+
+  const [assetsLoaded, setAssetsLoaded] = useState(false);
+
+  useEffect(() => {
+    if (error) throw error;
+    if (migrationError) throw migrationError;
+  }, [error, migrationError]);
+
+  useEffect(() => {
+    async function loadImages() {
+      try {
+        await Asset.loadAsync([
+          require('../assets/logo-light.png'),
+          require('../assets/logo-dark.png')
+        ]);
+      } catch (e) {
+        console.warn('Failed to load assets', e);
+      } finally {
+        setAssetsLoaded(true);
+      }
+    }
+    loadImages();
+  }, []);
+
+  useEffect(() => {
+    if (loaded && success && assetsLoaded) {
+      SplashScreen.hideAsync();
+    }
+  }, [loaded, success, assetsLoaded]);
+
+  if (!loaded || !success || !assetsLoaded) {
+    return null;
+  }
+
+  return (
+    <AppThemeProvider>
+      <RootLayoutNav />
+    </AppThemeProvider>
+  );
+}
+
+function RootLayoutNav() {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+
+  const CustomDarkTheme = {
+    ...DarkTheme,
+    colors: {
+      ...DarkTheme.colors,
+      background: '#1E1E1A',
+      card: '#1E1E1A',
+      text: '#F8FAFC',
+      border: '#343A40',
+      primary: '#A1262A',
+    },
+  };
+
+  const CustomDefaultTheme = {
+    ...DefaultTheme,
+    colors: {
+      ...DefaultTheme.colors,
+      background: '#F8FAFC',
+      card: '#FFFFFF',
+      text: '#1E1E1A',
+      border: '#E9ECEF',
+      primary: '#2F7AA9',
+    },
+  };
+
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+    <ThemeProvider value={isDark ? CustomDarkTheme : CustomDefaultTheme}>
+      <Stack
+        screenOptions={{
+          headerStyle: {
+            backgroundColor: isDark ? '#1E1E1A' : '#FFFFFF',
+            borderBottomWidth: 1,
+            borderBottomColor: isDark ? '#4A4A4A' : '#E2E8F0',
+          },
+          headerTintColor: isDark ? '#F8FAFC' : '#1E1E1A',
+          headerTitleStyle: { fontWeight: '700' },
+          headerShadowVisible: false,
+        }}
+      >
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="documents/new"
+          options={{ title: 'Nouveau Document', presentation: 'modal' }}
+        />
+        <Stack.Screen
+          name="documents/[id]"
+          options={{ title: 'Détail Document' }}
+        />
+        <Stack.Screen
+          name="clients/new"
+          options={{ title: 'Nouveau Client', presentation: 'modal' }}
+        />
+        <Stack.Screen
+          name="clients/[id]"
+          options={{ title: 'Profil Client' }}
+        />
+        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Info' }} />
+      </Stack>
+    </ThemeProvider>
+    </GestureHandlerRootView>
+  );
+}

@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1776711373494,
+      "tag": "0000_wide_spyke",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1776711971162,
+      "tag": "0001_adorable_fabian_cortez",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1776729770998,
+      "tag": "0002_spooky_tiger_shark",
+      "breakpoints": true
+    }
+  ]
+}

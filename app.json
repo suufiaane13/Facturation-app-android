@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "factures",
+    "slug": "factures",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/logo-light.png",
+    "scheme": "factures",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/logo-dark.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1E1E1A"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/logo-light.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/logo-light.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-sqlite",
+      "expo-mail-composer"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
