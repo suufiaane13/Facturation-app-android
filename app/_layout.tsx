@@ -13,6 +13,8 @@ import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
 import { db } from '@/db/client';
 import migrations from '@/drizzle/migrations';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { useSafeAreaInsets, SafeAreaProvider } from 'react-native-safe-area-context';
+import { View } from 'react-native';
 
 export {
   ErrorBoundary,
@@ -75,6 +77,7 @@ export default function RootLayout() {
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const insets = useSafeAreaInsets();
 
   const CustomDarkTheme = {
     ...DarkTheme,
@@ -103,35 +106,37 @@ function RootLayoutNav() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
     <ThemeProvider value={isDark ? CustomDarkTheme : CustomDefaultTheme}>
-      <Stack
-        screenOptions={{
-          headerStyle: {
-            backgroundColor: isDark ? '#1E1E1A' : '#FFFFFF',
-          },
-          headerTintColor: isDark ? '#F8FAFC' : '#1E1E1A',
-          headerTitleStyle: { fontWeight: '700' },
-          headerShadowVisible: false,
-        }}
-      >
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="documents/new"
-          options={{ title: 'Nouveau Document', presentation: 'modal' }}
-        />
-        <Stack.Screen
-          name="documents/[id]"
-          options={{ title: 'Détail Document' }}
-        />
-        <Stack.Screen
-          name="clients/new"
-          options={{ title: 'Nouveau Client', presentation: 'modal' }}
-        />
-        <Stack.Screen
-          name="clients/[id]"
-          options={{ title: 'Profil Client' }}
-        />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Info' }} />
-      </Stack>
+      <View style={{ flex: 1, paddingBottom: insets.bottom, backgroundColor: isDark ? '#1E1E1A' : '#F8FAFC' }}>
+        <Stack
+          screenOptions={{
+            headerStyle: {
+              backgroundColor: isDark ? '#1E1E1A' : '#FFFFFF',
+            },
+            headerTintColor: isDark ? '#F8FAFC' : '#1E1E1A',
+            headerTitleStyle: { fontWeight: '700' },
+            headerShadowVisible: false,
+          }}
+        >
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="documents/new"
+            options={{ title: 'Nouveau Document', presentation: 'modal' }}
+          />
+          <Stack.Screen
+            name="documents/[id]"
+            options={{ title: 'Détail Document' }}
+          />
+          <Stack.Screen
+            name="clients/new"
+            options={{ title: 'Nouveau Client', presentation: 'modal' }}
+          />
+          <Stack.Screen
+            name="clients/[id]"
+            options={{ title: 'Profil Client' }}
+          />
+          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Info' }} />
+        </Stack>
+      </View>
     </ThemeProvider>
     </GestureHandlerRootView>
   );
