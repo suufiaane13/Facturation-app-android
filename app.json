@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "factures",
-    "slug": "factures",
+    "slug": "facturation-simba",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/logo-app.png",
@@ -39,7 +39,11 @@
       "typedRoutes": true
     },
     "extra": {
-      "router": {}
-    }
+      "router": {},
+      "eas": {
+        "projectId": "9919a532-1e0b-4f26-81b0-25c902b6f0bb"
+      }
+    },
+    "owner": "suufiaane"
   }
 }
