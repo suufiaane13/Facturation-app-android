@@ -6,11 +6,14 @@ import CreationTypeModal from '@/components/CreationTypeModal';
 import Colors, { Palette } from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 export default function TabLayout() {
   const colorScheme = useColorScheme() ?? 'light';
   const isDark = colorScheme === 'dark';
   const [showCreateModal, setShowCreateModal] = useState(false);
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   return (
     <>
@@ -22,9 +25,9 @@ export default function TabLayout() {
           backgroundColor: isDark ? Palette.slate[900] : '#FFFFFF',
           borderTopColor: isDark ? Palette.slate[800] : '#E2E8F0',
           borderTopWidth: 1,
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 4,
+          height: 60 + Math.max(insets.bottom, 8),
+          paddingBottom: Math.max(insets.bottom, 8),
+          paddingTop: 8,
         },
         tabBarLabelStyle: {
           fontSize: 11,

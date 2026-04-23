@@ -251,7 +251,7 @@ export default function SettingsScreen() {
                     {form.logoBase64 ? (
                       <Image source={{ uri: form.logoBase64 }} style={[styles.logoImage, { borderColor: isDark ? Palette.slate[700] : Palette.slate[200] }]} />
                     ) : (
-                    <Image source={isDark ? require('@/assets/logo-dark.png') : require('@/assets/logo-light.png')} style={[styles.logoImage, { borderColor: isDark ? Palette.slate[700] : Palette.slate[200], backgroundColor: '#FFF' }]} resizeMode="contain" />
+                    <Image source={require('@/assets/logo-app.png')} style={[styles.logoImage, { borderColor: isDark ? Palette.slate[700] : Palette.slate[200], backgroundColor: '#FFF' }]} resizeMode="contain" />
                     )}
                   </Pressable>
                   <View style={{ flex: 1, gap: 10 }}>
@@ -522,7 +522,7 @@ export default function SettingsScreen() {
         {form.logoBase64 ? (
           <Image source={{ uri: form.logoBase64 }} style={styles.previewImage} resizeMode="contain" />
         ) : (
-          <Image source={isDark ? require('@/assets/logo-dark.png') : require('@/assets/logo-light.png')} style={[styles.previewImage, { backgroundColor: '#FFF', borderRadius: 20 }]} resizeMode="contain" />
+          <Image source={require('@/assets/logo-app.png')} style={[styles.previewImage, { backgroundColor: '#FFF', borderRadius: 20 }]} resizeMode="contain" />
         )}
       </View>
     </Modal>

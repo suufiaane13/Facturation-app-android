@@ -43,7 +43,8 @@ export default function RootLayout() {
       try {
         await Asset.loadAsync([
           require('../assets/logo-light.png'),
-          require('../assets/logo-dark.png')
+          require('../assets/logo-dark.png'),
+          require('../assets/logo-app.png')
         ]);
       } catch (e) {
         console.warn('Failed to load assets', e);
@@ -106,8 +107,6 @@ function RootLayoutNav() {
         screenOptions={{
           headerStyle: {
             backgroundColor: isDark ? '#1E1E1A' : '#FFFFFF',
-            borderBottomWidth: 1,
-            borderBottomColor: isDark ? '#4A4A4A' : '#E2E8F0',
           },
           headerTintColor: isDark ? '#F8FAFC' : '#1E1E1A',
           headerTitleStyle: { fontWeight: '700' },

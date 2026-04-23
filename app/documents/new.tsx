@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, FlatList, TextInput, Alert, Platform } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { Plus, ChevronLeft, ChevronRight, Check, Search } from 'lucide-react-native';
 import { db } from '@/db/client';
 import { clients, quotes, invoices, lineItems } from '@/db/schema';
@@ -13,7 +13,7 @@ import AccordionItem from '@/components/AccordionItem';
 import CatalogModal from '@/components/CatalogModal';
 import MessageModal from '@/components/MessageModal';
 
-type LineItem = { title: string; description: string; unitPrice: number; quantity: number };
+type LineItem = { title: string; description: string | null; unitPrice: number; quantity: number };
 type Material = { name: string; price: number };
 
 export default function NewDocumentScreen() {
@@ -45,30 +45,37 @@ export default function NewDocumentScreen() {
     setMsgConfig({ visible: true, title, message, type, onCloseAction });
   };
 
-  // Load clients and potentially edit data on mount
-  React.useEffect(() => {
-    (async () => {
-      const all = await db.select().from(clients).orderBy(desc(clients.createdAt));
-      setClientList(all);
+  // Load clients and potentially edit data on focus
+  useFocusEffect(
+    useCallback(() => {
+      (async () => {
+        const all = await db.select().from(clients).orderBy(desc(clients.createdAt));
+        setClientList(all);
 
-      if (editId) {
-        const id = parseInt(editId);
-        const table = isQuote ? quotes : invoices;
-        const docRes = await db.select().from(table).where(eq(table.id, id));
-        if (docRes.length > 0) {
-          const d = docRes[0];
-          const c = all.find((cl) => cl.id === d.clientId);
-          if (c) setSelectedClient(c);
-          if (d.materials) setMaterials(JSON.parse(d.materials));
-          if (d.discount) setDiscount(d.discount);
-          if (d.notes) setNotes(d.notes);
+        if (editId) {
+          const id = parseInt(editId);
+          const table = isQuote ? quotes : invoices;
+          const docRes = await db.select().from(table).where(eq(table.id, id));
+          if (docRes.length > 0) {
+            const d = docRes[0];
+            const c = all.find((cl) => cl.id === d.clientId);
+            if (c) setSelectedClient(c);
+            if (d.materials) setMaterials(JSON.parse(d.materials));
+            
+            // Le discount n'existe que sur les devis (quotes) dans le schéma
+            if (isQuote && 'discount' in d && d.discount) {
+              setDiscount(d.discount);
+            }
+            
+            if (d.notes) setNotes(d.notes);
 
-          const docItems = await db.select().from(lineItems).where(eq(lineItems.docId, id));
-          setItems(docItems.filter(i => i.docType === (isQuote ? 'quote' : 'invoice')));
+            const docItems = await db.select().from(lineItems).where(eq(lineItems.docId, id));
+            setItems(docItems.filter(i => i.docType === (isQuote ? 'quote' : 'invoice')));
+          }
         }
-      }
-    })();
-  }, [editId, isQuote]);
+      })();
+    }, [editId, isQuote])
+  );
 
   const filteredClients = clientSearch
     ? clientList.filter(c => c.name.toLowerCase().includes(clientSearch.toLowerCase()))
@@ -89,10 +96,11 @@ export default function NewDocumentScreen() {
     let maxSeq = 0;
     const yearPrefix = `${prefix}-${year}-`;
     
-    all.forEach(d => {
+    all.forEach((d: any) => {
       const numStr = isQuote ? d.quoteNumber : d.invoiceNumber;
       if (numStr && numStr.startsWith(yearPrefix)) {
-        const seq = parseInt(numStr.split('-').pop() || '0');
+        const parts = numStr.split('-');
+        const seq = parseInt(parts[parts.length - 1] || '0');
         if (seq > maxSeq) maxSeq = seq;
       }
     });
@@ -214,15 +222,23 @@ export default function NewDocumentScreen() {
   function renderClientStep() {
     return (
       <View style={styles.stepContainer}>
-        <View style={[styles.searchBox, { backgroundColor: cardBg, borderColor: border }]}>
-          <Search size={16} color={textSecondary} />
-          <TextInput
-            style={[styles.searchInput, { color: textPrimary }]}
-            placeholder="Rechercher un client..."
-            placeholderTextColor={Palette.slate[400]}
-            value={clientSearch}
-            onChangeText={setClientSearch}
-          />
+        <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>
+          <View style={[styles.searchBox, { backgroundColor: cardBg, borderColor: border, flex: 1, marginBottom: 0 }]}>
+            <Search size={16} color={textSecondary} />
+            <TextInput
+              style={[styles.searchInput, { color: textPrimary }]}
+              placeholder="Rechercher un client..."
+              placeholderTextColor={Palette.slate[400]}
+              value={clientSearch}
+              onChangeText={setClientSearch}
+            />
+          </View>
+          <Pressable
+            onPress={() => router.push('/clients/new')}
+            style={[styles.addSmallBtn, { backgroundColor: Palette.primary }]}
+          >
+            <Plus size={20} color="#FFF" />
+          </Pressable>
         </View>
         <FlatList
           data={filteredClients}
@@ -478,4 +494,5 @@ const styles = StyleSheet.create({
   navBtnText: { fontSize: 14, fontWeight: '700' },
   navBtnFilled: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 12, borderRadius: 12 },
   navBtnFilledText: { color: '#FFF', fontSize: 14, fontWeight: '700' },
+  addSmallBtn: { width: 46, height: 46, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
 });

@@ -3,7 +3,6 @@ import * as Sharing from 'expo-sharing';
 import { Asset } from 'expo-asset';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as MailComposer from 'expo-mail-composer';
-import * as Notifications from 'expo-notifications';
 import { db } from '@/db/client';
 import { companySettings } from '@/db/schema';
 
@@ -41,7 +40,7 @@ export async function generateAndSharePDF(params: PDFParams) {
   let finalLogoBase64 = company.logoBase64;
   if (!finalLogoBase64) {
     try {
-      const logoAsset = Asset.fromModule(require('@/assets/logo-light.png'));
+      const logoAsset = Asset.fromModule(require('@/assets/logo-app.png'));
       await logoAsset.downloadAsync();
       if (logoAsset.localUri) {
         const base64 = await FileSystem.readAsStringAsync(logoAsset.localUri, { encoding: FileSystem.EncodingType.Base64 });
@@ -227,20 +226,4 @@ export async function sharePdfViaWhatsApp(pdfPath: string) {
   }
 }
 
-// Schedule a local notification after document creation (example 15 days later)
-export async function scheduleReminderNotification(docId: string, clientName: string) {
-  try {
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: 'Rappel paiement',
-        body: `Facture ${docId} pour ${clientName} en attente de paiement.`,
-      },
-      trigger: { 
-        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-        seconds: 15 * 24 * 3600 
-      }, // 15 days
-    });
-  } catch (e) {
-    console.error('Notification schedule error:', e);
-  }
-}
+

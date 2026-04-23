@@ -6,10 +6,10 @@ import { Palette } from '@/constants/Colors';
 
 interface AccordionItemProps {
   title: string;
-  description: string;
+  description: string | null;
   unitPrice: number;
   quantity: number;
-  onUpdate: (data: { title: string; description: string; unitPrice: number; quantity: number }) => void;
+  onUpdate: (data: { title: string; description: string | null; unitPrice: number; quantity: number }) => void;
   onDelete: () => void;
 }
 
@@ -52,7 +52,7 @@ export default function AccordionItem({ title, description, unitPrice, quantity,
             <Text style={[styles.fieldLabel, { color: isDark ? Palette.slate[400] : Palette.slate[500] }]}>Description</Text>
             <TextInput
               style={[styles.input, styles.multiline, { color: isDark ? Palette.slate[50] : Palette.slate[900], borderColor: isDark ? Palette.slate[600] : Palette.slate[200], backgroundColor: isDark ? Palette.slate[900] : Palette.slate[50] }]}
-              value={description}
+              value={description ?? ''}
               onChangeText={(v) => onUpdate({ title, description: v, unitPrice, quantity })}
               placeholder="Description détaillée..."
               placeholderTextColor={Palette.slate[400]}
