@@ -9,7 +9,7 @@ import { catalog } from '@/db/schema';
 interface CatalogModalProps {
   visible: boolean;
   onClose: () => void;
-  onSelect: (item: { title: string; description: string; unitPrice: number }) => void;
+  onSelect: (items: { title: string; description: string; unitPrice: number }[]) => void;
 }
 
 export default function CatalogModal({ visible, onClose, onSelect }: CatalogModalProps) {
@@ -18,10 +18,12 @@ export default function CatalogModal({ visible, onClose, onSelect }: CatalogModa
 
   const [items, setItems] = useState<any[]>([]);
   const [search, setSearch] = useState('');
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     if (visible) {
       loadCatalog();
+      setSelectedIds(new Set()); // Reset selection on open
     }
   }, [visible]);
 
@@ -33,6 +35,30 @@ export default function CatalogModal({ visible, onClose, onSelect }: CatalogModa
       console.error(e);
     }
   }
+
+  const toggleItem = (id: number) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const handleConfirm = () => {
+    const selectedList = items
+      .filter(item => selectedIds.has(item.id))
+      .map(item => ({
+        title: item.title,
+        description: item.description || '',
+        unitPrice: item.defaultPrice || 0,
+      }));
+    
+    if (selectedList.length > 0) {
+      onSelect(selectedList);
+    }
+  };
 
   const filteredItems = search
     ? items.filter(i => i.title.toLowerCase().includes(search.toLowerCase()) || i.description?.toLowerCase().includes(search.toLowerCase()))
@@ -53,7 +79,10 @@ export default function CatalogModal({ visible, onClose, onSelect }: CatalogModa
           <Pressable style={styles.backdrop} onPress={onClose} />
           <View style={[styles.content, { backgroundColor: bgColor, borderColor: border }]}>
             <View style={styles.header}>
-              <Text style={[styles.title, { color: textColor }]}>Ajouter une prestation</Text>
+              <View>
+                <Text style={[styles.title, { color: textColor }]}>Catalogue</Text>
+                {selectedIds.size > 0 && <Text style={{ color: Palette.primary, fontSize: 13, fontWeight: '600' }}>{selectedIds.size} sélectionné(s)</Text>}
+              </View>
               <TouchableOpacity onPress={onClose} style={[styles.closeBtn, { backgroundColor: isDark ? Palette.slate[700] : Palette.slate[100] }]}>
                 <X size={20} color={mutedText} />
               </TouchableOpacity>
@@ -63,7 +92,7 @@ export default function CatalogModal({ visible, onClose, onSelect }: CatalogModa
               <Search size={18} color={mutedText} />
               <TextInput
                 style={[styles.searchInput, { color: textColor }]}
-                placeholder="Rechercher dans le catalogue..."
+                placeholder="Rechercher..."
                 placeholderTextColor={mutedText}
                 value={search}
                 onChangeText={setSearch}
@@ -75,24 +104,32 @@ export default function CatalogModal({ visible, onClose, onSelect }: CatalogModa
               keyExtractor={(item) => String(item.id)}
               style={styles.list}
               contentContainerStyle={styles.listContent}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={[styles.itemRow, { borderColor: border }]}
-                  onPress={() => {
-                    onSelect({
-                      title: item.title,
-                      description: item.description || '',
-                      unitPrice: item.defaultPrice || 0,
-                    });
-                  }}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.itemTitle, { color: textColor }]}>{item.title}</Text>
-                    {item.description ? <Text style={[styles.itemDesc, { color: mutedText }]} numberOfLines={2}>{item.description}</Text> : null}
-                  </View>
-                  <Text style={[styles.itemPrice, { color: Palette.primary }]}>{item.defaultPrice?.toFixed(2) ?? '0.00'} €</Text>
-                </TouchableOpacity>
-              )}
+              renderItem={({ item }) => {
+                const isSelected = selectedIds.has(item.id);
+                return (
+                  <TouchableOpacity
+                    style={[
+                      styles.itemRow, 
+                      { 
+                        borderColor: isSelected ? Palette.primary : border,
+                        backgroundColor: isSelected ? (isDark ? Palette.primary + '15' : Palette.primary + '08') : 'transparent'
+                      }
+                    ]}
+                    onPress={() => toggleItem(item.id)}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.itemTitle, { color: textColor }]}>{item.title}</Text>
+                      {item.description ? <Text style={[styles.itemDesc, { color: mutedText }]} numberOfLines={2}>{item.description}</Text> : null}
+                    </View>
+                    <View style={{ alignItems: 'flex-end', gap: 6 }}>
+                      <Text style={[styles.itemPrice, { color: isSelected ? Palette.primary : textColor }]}>{item.defaultPrice?.toFixed(2) ?? '0.00'} €</Text>
+                      <View style={[styles.checkbox, { borderColor: isSelected ? Palette.primary : border, backgroundColor: isSelected ? Palette.primary : 'transparent' }]}>
+                        {isSelected && <X size={12} color="#FFF" style={{ transform: [{ rotate: '45deg' }] }} />}
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              }}
               ListEmptyComponent={() => (
                 <Text style={[styles.emptyText, { color: mutedText }]}>
                   {search ? 'Aucun résultat' : 'Catalogue vide'}
@@ -101,15 +138,22 @@ export default function CatalogModal({ visible, onClose, onSelect }: CatalogModa
             />
 
             <View style={styles.footer}>
-              <TouchableOpacity
-                style={[styles.manualBtn, { borderColor: Palette.primary }]}
-                onPress={() => {
-                  onSelect({ title: '', description: '', unitPrice: 0 });
-                }}
-              >
-                <Plus size={18} color={Palette.primary} />
-                <Text style={[styles.manualBtnText, { color: Palette.primary }]}>Saisie libre manuelle</Text>
-              </TouchableOpacity>
+              {selectedIds.size > 0 ? (
+                <TouchableOpacity
+                  style={[styles.confirmBtn, { backgroundColor: Palette.primary }]}
+                  onPress={handleConfirm}
+                >
+                  <Text style={styles.confirmBtnText}>Ajouter la sélection ({selectedIds.size})</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.manualBtn, { borderColor: Palette.primary }]}
+                  onPress={() => onSelect([{ title: '', description: '', unitPrice: 0 }])}
+                >
+                  <Plus size={18} color={Palette.primary} />
+                  <Text style={[styles.manualBtnText, { color: Palette.primary }]}>Saisie libre manuelle</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         </View>
@@ -130,9 +174,9 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
   },
   content: {
-    height: height * 0.8,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    height: height * 0.85,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
     borderWidth: 1,
     paddingTop: 24,
     shadowColor: '#000',
@@ -149,7 +193,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   title: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '800',
   },
   closeBtn: {
@@ -163,7 +207,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 24,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
     marginBottom: 16,
   },
@@ -183,8 +227,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
+    borderRadius: 18,
+    borderWidth: 1.5,
   },
   itemTitle: {
     fontSize: 16,
@@ -195,8 +239,16 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   itemPrice: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyText: {
     textAlign: 'center',
@@ -207,7 +259,7 @@ const styles = StyleSheet.create({
     padding: 24,
     paddingBottom: 40,
     borderTopWidth: 1,
-    borderColor: 'rgba(150,150,150,0.2)',
+    borderColor: 'rgba(150,150,150,0.1)',
   },
   manualBtn: {
     flexDirection: 'row',
@@ -215,12 +267,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 16,
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1.5,
     borderStyle: 'dashed',
   },
   manualBtnText: {
     fontSize: 15,
     fontWeight: '700',
+  },
+  confirmBtn: {
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: Palette.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  confirmBtnText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '800',
   },
 });

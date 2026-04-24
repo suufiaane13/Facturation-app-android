@@ -4,7 +4,8 @@ import { Asset } from 'expo-asset';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as MailComposer from 'expo-mail-composer';
 import { db } from '@/db/client';
-import { companySettings } from '@/db/schema';
+import { companySettings, quotes, invoices, lineItems, clients } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 
 interface PDFParams {
   doc: any;
@@ -40,10 +41,11 @@ export async function generateAndSharePDF(params: PDFParams) {
   let finalLogoBase64 = company.logoBase64;
   if (!finalLogoBase64) {
     try {
-      const logoAsset = Asset.fromModule(require('@/assets/logo-app.png'));
+      const logoAsset = Asset.fromModule(require('../assets/logo-app.png'));
       await logoAsset.downloadAsync();
-      if (logoAsset.localUri) {
-        const base64 = await FileSystem.readAsStringAsync(logoAsset.localUri, { encoding: FileSystem.EncodingType.Base64 });
+      const uri = logoAsset.localUri || logoAsset.uri;
+      if (uri) {
+        const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
         finalLogoBase64 = `data:image/png;base64,${base64}`;
       }
     } catch (e) {
@@ -56,7 +58,7 @@ export async function generateAndSharePDF(params: PDFParams) {
   const dateStr = doc.createdAt ? new Date(doc.createdAt).toLocaleDateString('fr-FR') : '';
 
   const prestationsSubtotal = items.reduce((s: number, i: any) => s + (i.total ?? 0), 0);
-  const materialsSubtotal = materials.reduce((s: number, m: any) => s + (m.price ?? 0), 0);
+  const materialsSubtotal = materials.reduce((s: number, m: any) => s + ((m.unitPrice ?? 0) * (m.quantity ?? 0)), 0);
   const discount = doc.discount ?? 0;
   const total = doc.total ?? 0;
 
@@ -73,7 +75,9 @@ export async function generateAndSharePDF(params: PDFParams) {
   const materialsRows = materials.map((m: any) => `
     <tr>
       <td>${m.name ?? ''}</td>
-      <td style="text-align:right;font-weight:700">${(m.price ?? 0).toFixed(2)} €</td>
+      <td style="text-align:right">${m.quantity ?? 0}</td>
+      <td style="text-align:right">${(m.unitPrice ?? 0).toFixed(2)} €</td>
+      <td style="text-align:right;font-weight:700">${((m.unitPrice ?? 0) * (m.quantity ?? 0)).toFixed(2)} €</td>
     </tr>
   `).join('');
 
@@ -108,8 +112,12 @@ export async function generateAndSharePDF(params: PDFParams) {
     .totals .row .discount { color:#A1262A; }
     .notes { margin-top:30px; padding:14px; background:#F8FAFC; border-radius:8px; border:1px solid #E2E8F0; }
     .notes h4 { font-size:11px; color:#64748B; text-transform:uppercase; margin-bottom:6px; }
-    .notes p { font-size:12px; color:#475569; line-height:1.6; }
-    .footer { margin-top:40px; text-align:center; font-size:10px; color:#94A3B8; border-top:1px solid #E2E8F0; padding-top:16px; }
+    .notes p { font-size: 11px; color: #475569; margin-top: 5px; }
+    .signature-section { margin-top: 40px; display: flex; justify-content: flex-start; }
+    .signature-box { width: 250px; text-align: center; }
+    .signature-box p { font-size: 11px; font-weight: bold; color: #1e293b; margin-bottom: 80px; }
+    .signature-line { border-bottom: 1px solid #cbd5e1; width: 100%; }
+    .footer { position: fixed; bottom: 0; left: 0; right: 0; text-align: center; font-size: 9px; color: #94a3b8; border-top: 1px solid #f1f5f9; padding-top: 10px; }
   </style>
 </head>
 <body>
@@ -151,7 +159,7 @@ export async function generateAndSharePDF(params: PDFParams) {
   ${materials.length > 0 ? `
     <div class="section-title">Matériels & Fournitures</div>
     <table>
-      <thead><tr><th>Désignation</th><th style="text-align:right">Prix</th></tr></thead>
+      <thead><tr><th>Désignation</th><th style="text-align:right">Qte</th><th style="text-align:right">P.U</th><th style="text-align:right">Total</th></tr></thead>
       <tbody>${materialsRows}</tbody>
     </table>
   ` : ''}
@@ -161,6 +169,14 @@ export async function generateAndSharePDF(params: PDFParams) {
     <div class="row"><span>Matériels</span><span>${materialsSubtotal.toFixed(2)} €</span></div>
     ${discount > 0 ? `<div class="row"><span class="discount">Remise</span><span class="discount">-${discount.toFixed(2)} €</span></div>` : ''}
     <div class="row grand"><span class="label">TOTAL NET</span><span class="value">${total.toFixed(2)} €</span></div>
+    <p style="text-align: right; font-size: 10px; margin-top: 5px; font-style: italic;">TVA non applicable, art. 293B du CGI</p>
+  </div>
+
+  <div class="signature-section">
+    <div class="signature-box">
+      <p>Signature et Cachet du Client</p>
+      <div class="signature-line"></div>
+    </div>
   </div>
 
   ${doc.notes ? `<div class="notes"><h4>Notes</h4><p>${doc.notes}</p></div>` : ''}
@@ -177,7 +193,7 @@ export async function generateAndSharePDF(params: PDFParams) {
     // Rename file professionally
     const safeClientName = client?.name ? client.name.replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_') : 'Client';
     const cleanDocNum = docNumber.replace(/[^a-z0-9]/gi, '_');
-    const newPath = `${FileSystem.cacheDirectory}${docLabel}_${cleanDocNum}_${safeClientName}.pdf`;
+    const newPath = `${FileSystem.cacheDirectory}${cleanDocNum}_${safeClientName}.pdf`;
     
     await FileSystem.moveAsync({ from: uri, to: newPath });
     
@@ -225,5 +241,47 @@ export async function sharePdfViaWhatsApp(pdfPath: string) {
     console.error('WhatsApp share error:', e);
   }
 }
+
+/**
+ * High-level helper to generate PDF from database ID
+ */
+export async function generatePDF(docId: number, type: 'quote' | 'invoice', action: 'share' | 'none' = 'none') {
+  try {
+    const isQuote = type === 'quote';
+    const table = isQuote ? quotes : invoices;
+    
+    const docResults = await db.select().from(table).where(eq(table.id, docId));
+    if (docResults.length === 0) return null;
+    const doc = docResults[0];
+
+    const clientResults = await db.select().from(clients).where(eq(clients.id, doc.clientId));
+    const client = clientResults[0];
+
+    const items = await db.select().from(lineItems).where(eq(lineItems.docId, docId));
+    
+    // Parse materials if they exist
+    let materials: any[] = [];
+    if (doc.materials) {
+      try {
+        materials = JSON.parse(doc.materials as string);
+      } catch {
+        materials = [];
+      }
+    }
+
+    return await generateAndSharePDF({
+      doc,
+      client,
+      items,
+      materials,
+      docType: type,
+      action
+    });
+  } catch (e) {
+    console.error('generatePDF Error:', e);
+    return null;
+  }
+}
+
 
 

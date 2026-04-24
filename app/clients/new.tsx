@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, Pressable, Alert, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { UserPlus, UserCheck } from 'lucide-react-native';
@@ -9,6 +10,7 @@ import { eq } from 'drizzle-orm';
 import { useColorScheme } from '@/components/useColorScheme';
 import { Palette } from '@/constants/Colors';
 import MessageModal from '@/components/MessageModal';
+import SuccessModal from '@/components/SuccessModal';
 
 export default function NewClientScreen() {
   const router = useRouter();
@@ -16,6 +18,7 @@ export default function NewClientScreen() {
   const isEditing = !!editId;
   const scheme = useColorScheme() ?? 'light';
   const isDark = scheme === 'dark';
+  const insets = useSafeAreaInsets();
 
   const [form, setForm] = useState({
     name: '',
@@ -32,8 +35,18 @@ export default function NewClientScreen() {
     onCloseAction: undefined as (() => void) | undefined,
   });
 
+  const [successConfig, setSuccessConfig] = useState({
+    visible: false,
+    title: '',
+    message: '',
+  });
+
   const showMessage = (title: string, message: string, type: 'success' | 'error' | 'warning' = 'success', onCloseAction?: () => void) => {
-    setMsgConfig({ visible: true, title, message, type, onCloseAction });
+    if (type === 'success') {
+      setSuccessConfig({ visible: true, title, message });
+    } else {
+      setMsgConfig({ visible: true, title, message, type, onCloseAction });
+    }
   };
 
   React.useEffect(() => {
@@ -99,7 +112,7 @@ export default function NewClientScreen() {
     <>
     <KeyboardAwareScrollView
       style={[styles.container, { backgroundColor: isDark ? Palette.slate[900] : Palette.slate[50] }]}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 40) }]}
       keyboardShouldPersistTaps="handled"
       enableOnAndroid={true}
       extraScrollHeight={40}
@@ -143,6 +156,15 @@ export default function NewClientScreen() {
       onClose={() => {
         setMsgConfig((prev) => ({ ...prev, visible: false }));
         if (msgConfig.onCloseAction) msgConfig.onCloseAction();
+      }}
+    />
+    <SuccessModal
+      visible={successConfig.visible}
+      title={successConfig.title}
+      message={successConfig.message}
+      onClose={() => {
+        setSuccessConfig(prev => ({ ...prev, visible: false }));
+        router.back();
       }}
     />
     </>

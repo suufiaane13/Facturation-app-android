@@ -1,5 +1,6 @@
 import React, { useCallback, useState, useMemo, useRef } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, TextInput, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, ScrollView } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Plus, FileText, Search, X, Trash2, Edit2, Eye } from 'lucide-react-native';
 import { db } from '@/db/client';
@@ -79,7 +80,7 @@ export default function DocumentsScreen() {
         );
       }
       if (currentStatusFilter) {
-        conditions.push(eq(table.status, currentStatusFilter));
+        conditions.push(eq(table.status, currentStatusFilter as any));
       }
 
       const fetched = await db.select({
@@ -280,9 +281,11 @@ export default function DocumentsScreen() {
           onAction={() => router.push({ pathname: '/documents/new', params: { type: tab === 'devis' ? 'quote' : 'invoice' } })}
         />
       ) : (
-        <FlatList
+        <FlashList
           data={documents}
-          keyExtractor={(item) => `${item.type}-${item.id}`}
+          // @ts-ignore
+          estimatedItemSize={100}
+          keyExtractor={(item: any) => `${item.type}-${item.id}`}
           contentContainerStyle={{ paddingTop: 8, paddingBottom: 80 }}
           showsVerticalScrollIndicator={false}
           onEndReached={() => loadDocuments()}

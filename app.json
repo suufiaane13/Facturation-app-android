@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "factures",
+    "name": "AD Services",
     "slug": "facturation-simba",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -30,10 +30,17 @@
       "output": "static",
       "favicon": "./assets/logo-light.png"
     },
+    "updates": {
+      "url": "https://u.expo.dev/9919a532-1e0b-4f26-81b0-25c902b6f0bb"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "plugins": [
       "expo-router",
       "expo-sqlite",
-      "expo-mail-composer"
+      "expo-mail-composer",
+      "expo-updates"
     ],
     "experiments": {
       "typedRoutes": true

@@ -14,6 +14,8 @@ import StatusModal from '@/components/StatusModal';
 import MessageModal from '@/components/MessageModal';
 import PaymentModal from '@/components/PaymentModal';
 import { Mail, MessageCircle } from 'lucide-react-native';
+import ConfettiCannon from 'react-native-confetti-cannon';
+import * as Haptics from 'expo-haptics';
 
 
 export default function DocumentDetailScreen() {
@@ -30,6 +32,7 @@ export default function DocumentDetailScreen() {
   const [docType, setDocType] = useState<'quote' | 'invoice'>('quote');
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
   const [msgConfig, setMsgConfig] = useState({
     visible: false,
     title: '',
@@ -88,9 +91,9 @@ export default function DocumentDetailScreen() {
     if (!doc) return;
     try {
       if (docType === 'quote') {
-        await db.update(quotes).set({ status: newStatus as any }).where(eq(quotes.id, doc.id));
+        await db.update(quotes).set({ status: newStatus as any }).where(eq(quotes.id, Number(doc.id)));
       } else {
-        await db.update(invoices).set({ status: newStatus as any }).where(eq(invoices.id, doc.id));
+        await db.update(invoices).set({ status: newStatus as any }).where(eq(invoices.id, Number(doc.id)));
       }
       loadDocument();
       showMessage('Succès', `Statut mis à jour : ${newStatus}`, 'success');
@@ -115,8 +118,15 @@ export default function DocumentDetailScreen() {
         amountPaid: newAmountPaid,
         balanceDue: Math.max(0, newBalanceDue),
         status: newStatus
-      }).where(eq(invoices.id, doc.id));
+      }).where(eq(invoices.id, Number(doc.id)));
       
+      if (newStatus === 'Payée') {
+        setShowConfetti(true);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      }
+
       setShowPaymentModal(false);
       loadDocument();
       showMessage('Paiement enregistré', `Un acompte de ${amount.toFixed(2)}€ a été ajouté.`, 'success');
@@ -193,7 +203,7 @@ export default function DocumentDetailScreen() {
         });
       }
 
-      await db.update(quotes).set({ status: 'Facturé' }).where(eq(quotes.id, doc.id));
+      await db.update(quotes).set({ status: 'Facturé' }).where(eq(quotes.id, Number(doc.id)));
       showMessage('Converti', `Facture ${num} créée avec succès.`, 'success', () => router.back());
     } catch (e) {
       showMessage('Erreur', 'Impossible de convertir.', 'error');
@@ -260,9 +270,12 @@ export default function DocumentDetailScreen() {
         <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
           <Text style={[styles.sectionTitle, { color: textSecondary }]}>MATÉRIELS</Text>
           {materialsList.map((m: any, i: number) => (
-            <View key={i} style={styles.matLine}>
-              <Text style={[styles.matName, { color: textPrimary }]}>{m.name}</Text>
-              <Text style={[styles.matPrice, { color: Palette.danger }]}>{m.price.toFixed(2)} €</Text>
+            <View key={i} style={[styles.lineItem, i < materialsList.length - 1 && { borderBottomWidth: 1, borderBottomColor: border }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.itemTitle, { color: textPrimary }]}>{m.name}</Text>
+                <Text style={[styles.itemMeta, { color: textSecondary }]}>{m.quantity ?? 0} × {(m.unitPrice ?? 0).toFixed(2)} €</Text>
+              </View>
+              <Text style={[styles.itemTotal, { color: Palette.danger }]}>{((m.unitPrice ?? 0) * (m.quantity ?? 0)).toFixed(2)} €</Text>
             </View>
           ))}
         </View>
@@ -412,6 +425,14 @@ export default function DocumentDetailScreen() {
         onClose={() => setShowPaymentModal(false)}
         onSave={handleSavePayment}
       />
+      {showConfetti && (
+        <ConfettiCannon
+          count={200}
+          origin={{ x: -10, y: 0 }}
+          fadeOut={true}
+          onAnimationEnd={() => setShowConfetti(false)}
+        />
+      )}
     </>
   );
 }

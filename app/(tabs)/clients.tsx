@@ -1,5 +1,6 @@
 import React, { useCallback, useState, useRef } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Plus, Users, Phone, Mail, ChevronRight, Trash2, Edit2, UserPlus } from 'lucide-react-native';
 import { db } from '@/db/client';
@@ -181,9 +182,11 @@ export default function ClientsScreen() {
           ))}
         </View>
       ) : (
-        <FlatList
+        <FlashList
           data={filtered}
-        keyExtractor={(item) => String(item.id)}
+          // @ts-ignore
+          estimatedItemSize={80}
+        keyExtractor={(item: any) => String(item.id)}
         contentContainerStyle={{ paddingBottom: 80 }}
         showsVerticalScrollIndicator={false}
         onEndReached={() => loadClients()}

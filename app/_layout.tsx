@@ -1,9 +1,11 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect, useState } from 'react';
+import * as Updates from 'expo-updates';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useEffect, useState, useCallback } from 'react';
 import { Asset } from 'expo-asset';
 import 'react-native-reanimated';
 
@@ -34,6 +36,8 @@ export default function RootLayout() {
   });
 
   const [assetsLoaded, setAssetsLoaded] = useState(false);
+  const [onboardingChecked, setOnboardingChecked] = useState(false);
+  const [shouldOnboard, setShouldOnboard] = useState(false);
 
   useEffect(() => {
     if (error) throw error;
@@ -58,24 +62,62 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    if (loaded && success && assetsLoaded) {
+    async function onFetchUpdateAsync() {
+      try {
+        const update = await Updates.checkForUpdateAsync();
+        if (update.isAvailable) {
+          await Updates.fetchUpdateAsync();
+          await Updates.reloadAsync();
+        }
+      } catch (e) {
+        console.log('Update check failed', e);
+      }
+    }
+    if (!__DEV__) {
+      onFetchUpdateAsync();
+    }
+  }, []);
+
+  useEffect(() => {
+    async function checkOnboarding() {
+      try {
+        const finished = await AsyncStorage.getItem('hasFinishedOnboarding');
+        setShouldOnboard(finished !== 'true');
+      } catch (e) {
+        console.warn(e);
+      } finally {
+        setOnboardingChecked(true);
+      }
+    }
+    checkOnboarding();
+  }, []);
+
+  useEffect(() => {
+    if (loaded && success && assetsLoaded && onboardingChecked) {
       SplashScreen.hideAsync();
     }
-  }, [loaded, success, assetsLoaded]);
+  }, [loaded, success, assetsLoaded, onboardingChecked]);
 
-  if (!loaded || !success || !assetsLoaded) {
+  if (!loaded || !success || !assetsLoaded || !onboardingChecked) {
     return null;
   }
 
   return (
     <AppThemeProvider>
-      <RootLayoutNav />
+      <RootLayoutNav shouldOnboard={shouldOnboard} />
     </AppThemeProvider>
   );
 }
 
-function RootLayoutNav() {
+function RootLayoutNav({ shouldOnboard }: { shouldOnboard: boolean }) {
+  const router = useRouter();
   const colorScheme = useColorScheme();
+
+  useEffect(() => {
+    if (shouldOnboard) {
+      router.replace('/onboarding');
+    }
+  }, [shouldOnboard]);
   const isDark = colorScheme === 'dark';
   const insets = useSafeAreaInsets();
 
@@ -106,7 +148,7 @@ function RootLayoutNav() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
     <ThemeProvider value={isDark ? CustomDarkTheme : CustomDefaultTheme}>
-      <View style={{ flex: 1, paddingBottom: insets.bottom, backgroundColor: isDark ? '#1E1E1A' : '#F8FAFC' }}>
+      <View style={{ flex: 1, backgroundColor: isDark ? '#1E1E1A' : '#F8FAFC' }}>
         <Stack
           screenOptions={{
             headerStyle: {
@@ -118,6 +160,7 @@ function RootLayoutNav() {
           }}
         >
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
           <Stack.Screen
             name="documents/new"
             options={{ title: 'Nouveau Document', presentation: 'modal' }}

@@ -61,7 +61,11 @@ export default function ClientProfileScreen() {
       ];
       
       // Sort combined by date descending
-      combined.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      combined.sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateB - dateA;
+      });
       
       setClientDocs(combined);
     } catch (e) {

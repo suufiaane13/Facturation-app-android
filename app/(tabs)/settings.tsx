@@ -5,8 +5,9 @@ import { Swipeable } from 'react-native-gesture-handler';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
-import { useFocusEffect } from 'expo-router';
-import { Save, Building2, Plus, Edit2, Trash2, X, Moon, Sun, Smartphone, Layers, Tag, AlignLeft, Euro, Settings as SettingsIcon, BookOpen, Database } from 'lucide-react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Save, Building2, Plus, Edit2, Trash2, X, Moon, Sun, Smartphone, Layers, Tag, AlignLeft, Euro, Settings as SettingsIcon, BookOpen, Database, HelpCircle } from 'lucide-react-native';
 import { db } from '@/db/client';
 import { companySettings, catalog } from '@/db/schema';
 import { eq } from 'drizzle-orm';
@@ -17,6 +18,7 @@ import MessageModal from '@/components/MessageModal';
 import FAB from '@/components/FAB';
 
 export default function SettingsScreen() {
+  const router = useRouter();
   const { themePref, setThemePref } = useThemeContext();
   const scheme = useColorScheme() ?? 'light';
   const isDark = scheme === 'dark';
@@ -148,6 +150,17 @@ export default function SettingsScreen() {
         setMsgConfig(prev => ({ ...prev, visible: false }));
       } catch (e) {
         showMessage('Erreur', 'Impossible de supprimer.', 'error');
+      }
+    });
+  }
+
+  async function resetOnboarding() {
+    showMessage('Confirmer', 'Voulez-vous relancer le tutoriel de bienvenue ? Vos données actuelles seront conservées.', 'warning', undefined, async () => {
+      try {
+        await AsyncStorage.removeItem('hasFinishedOnboarding');
+        router.replace('/onboarding');
+      } catch (e) {
+        console.error(e);
       }
     });
   }

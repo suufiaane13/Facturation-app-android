@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, FlatList, TextInput, Alert, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { Plus, ChevronLeft, ChevronRight, Check, Search } from 'lucide-react-native';
@@ -12,9 +13,12 @@ import StepperHeader from '@/components/StepperHeader';
 import AccordionItem from '@/components/AccordionItem';
 import CatalogModal from '@/components/CatalogModal';
 import MessageModal from '@/components/MessageModal';
+import SuccessModal from '@/components/SuccessModal';
+import { generatePDF, emailPdf } from '@/utils/pdfGenerator';
+import * as Haptics from 'expo-haptics';
 
 type LineItem = { title: string; description: string | null; unitPrice: number; quantity: number };
-type Material = { name: string; price: number };
+type Material = { name: string; unitPrice: number; quantity: number };
 
 export default function NewDocumentScreen() {
   const { type, editId } = useLocalSearchParams<{ type: string; editId?: string }>();
@@ -22,6 +26,7 @@ export default function NewDocumentScreen() {
   const router = useRouter();
   const scheme = useColorScheme() ?? 'light';
   const isDark = scheme === 'dark';
+  const insets = useSafeAreaInsets();
 
   const [step, setStep] = useState(0);
   const [clientList, setClientList] = useState<any[]>([]);
@@ -41,8 +46,23 @@ export default function NewDocumentScreen() {
     onCloseAction: undefined as (() => void) | undefined,
   });
 
+  const [successConfig, setSuccessConfig] = useState({
+    visible: false,
+    title: '',
+    message: '',
+  });
+  const [generatedPdfPath, setGeneratedPdfPath] = useState<string | null>(null);
+  const [lastDocNumber, setLastDocNumber] = useState('');
+  const [createdDocId, setCreatedDocId] = useState<number | null>(null);
+
+
+
   const showMessage = (title: string, message: string, type: 'success' | 'error' | 'warning' = 'success', onCloseAction?: () => void) => {
-    setMsgConfig({ visible: true, title, message, type, onCloseAction });
+    if (type === 'success') {
+      setSuccessConfig({ visible: true, title, message });
+    } else {
+      setMsgConfig({ visible: true, title, message, type, onCloseAction });
+    }
   };
 
   // Load clients and potentially edit data on focus
@@ -82,7 +102,7 @@ export default function NewDocumentScreen() {
     : clientList;
 
   const subtotal = items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
-  const materialsTotal = materials.reduce((sum, m) => sum + m.price, 0);
+  const materialsTotal = materials.reduce((sum, m) => sum + (m.unitPrice * m.quantity), 0);
   const grossTotal = subtotal + materialsTotal;
   const total = Math.max(0, grossTotal - discount);
 
@@ -120,6 +140,8 @@ export default function NewDocumentScreen() {
       setStep(1); // Go to prestations step
       return;
     }
+    
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     try {
       const materialsJson = materials.length > 0 ? JSON.stringify(materials) : null;
 
@@ -159,6 +181,7 @@ export default function NewDocumentScreen() {
       // New document (INSERT)
       const docNumber = await generateNumber();
 
+      let docId: number;
       if (isQuote) {
         const result = await db.insert(quotes).values({
           quoteNumber: docNumber,
@@ -169,7 +192,7 @@ export default function NewDocumentScreen() {
           materials: materialsJson,
           notes: notes || null,
         }).returning();
-        const docId = result[0].id;
+        docId = result[0].id;
         for (const item of items) {
           await db.insert(lineItems).values({
             docId,
@@ -190,7 +213,7 @@ export default function NewDocumentScreen() {
           materials: materialsJson,
           notes: notes || null,
         }).returning();
-        const docId = result[0].id;
+        docId = result[0].id;
         for (const item of items) {
           await db.insert(lineItems).values({
             docId,
@@ -203,7 +226,17 @@ export default function NewDocumentScreen() {
           });
         }
       }
-      showMessage('Créé', `${isQuote ? 'Devis' : 'Facture'} ${docNumber} créé(e) avec succès.`, 'success', () => router.back());
+
+      setLastDocNumber(docNumber);
+      setCreatedDocId(docId);
+      const pdfPath = await generatePDF(docId, isQuote ? 'quote' : 'invoice', 'none');
+      if (pdfPath) setGeneratedPdfPath(pdfPath);
+
+      showMessage(
+        isQuote ? 'Devis créé' : 'Facture créée',
+        `Le document ${docNumber} a été enregistré avec succès.`,
+        'success'
+      );
     } catch (e) {
       console.error('Save error:', e);
       showMessage('Erreur', 'Impossible de sauvegarder.', 'error');
@@ -318,22 +351,47 @@ export default function NewDocumentScreen() {
                 placeholderTextColor={Palette.slate[400]}
               />
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.fieldLabel, { color: textSecondary }]}>Prix (€)</Text>
+            <View style={{ width: 50 }}>
+              <Text style={[styles.fieldLabel, { color: textSecondary }]}>Qte</Text>
               <TextInput
                 style={inputStyle}
-                value={String(mat.price)}
-                onChangeText={(v) => { const m = [...materials]; m[i].price = parseFloat(v) || 0; setMaterials(m); }}
+                value={String(mat.quantity)}
+                onChangeText={(v) => { 
+                  const m = [...materials]; 
+                  m[i].quantity = parseFloat(v) || 0; 
+                  setMaterials(m); 
+                }}
                 keyboardType="decimal-pad"
               />
             </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.fieldLabel, { color: textSecondary }]}>P.U (€)</Text>
+              <TextInput
+                style={inputStyle}
+                value={String(mat.unitPrice)}
+                onChangeText={(v) => { 
+                  const m = [...materials]; 
+                  m[i].unitPrice = parseFloat(v) || 0; 
+                  setMaterials(m); 
+                }}
+                keyboardType="decimal-pad"
+              />
+            </View>
+            <View style={{ flex: 1, alignItems: 'flex-end' }}>
+              <Text style={[styles.fieldLabel, { color: textSecondary }]}>Total</Text>
+              <View style={[inputStyle, { backgroundColor: isDark ? Palette.slate[900] : Palette.slate[50], justifyContent: 'center', alignItems: 'flex-end', borderWidth: 0 }]}>
+                <Text style={{ fontSize: 13, fontWeight: '700', color: Palette.primary }}>
+                  {(mat.unitPrice * mat.quantity).toFixed(2)}
+                </Text>
+              </View>
+            </View>
             <Pressable onPress={() => setMaterials(materials.filter((_, idx) => idx !== i))} style={styles.matDelete}>
-              <Text style={{ color: Palette.danger, fontWeight: '700' }}>✕</Text>
+              <Text style={{ color: Palette.danger, fontWeight: '700', fontSize: 18 }}>✕</Text>
             </Pressable>
           </View>
         ))}
         <Pressable
-          onPress={() => setMaterials([...materials, { name: '', price: 0 }])}
+          onPress={() => setMaterials([...materials, { name: '', unitPrice: 0, quantity: 1 }])}
           style={[styles.addBtn, { borderColor: Palette.primary }]}
         >
           <Plus size={18} color={Palette.primary} />
@@ -371,10 +429,13 @@ export default function NewDocumentScreen() {
           <View style={[styles.summaryCard, { backgroundColor: cardBg, borderColor: border }]}>
             <Text style={[styles.summaryTitle, { color: textSecondary }]}>Matériels ({materials.length})</Text>
             {materials.map((m, i) => (
-              <View key={i} style={styles.summaryRow}>
-                <Text style={[styles.summaryItem, { color: textPrimary }]}>{m.name || 'Sans nom'}</Text>
-                <Text style={[styles.summaryItemPrice, { color: Palette.primary }]}>{m.price.toFixed(2)} €</Text>
-              </View>
+              <React.Fragment key={i}>
+                <View style={styles.summaryRow}>
+                  <Text style={[styles.summaryItem, { color: textPrimary }]}>{m.name || 'Sans nom'}</Text>
+                  <Text style={[styles.summaryItemPrice, { color: Palette.primary }]}>{(m.unitPrice * m.quantity).toFixed(2)} €</Text>
+                </View>
+                <Text style={{ fontSize: 11, color: textSecondary, marginTop: -4, marginBottom: 4 }}>{m.quantity} x {m.unitPrice.toFixed(2)}€</Text>
+              </React.Fragment>
             ))}
           </View>
         )}
@@ -408,7 +469,7 @@ export default function NewDocumentScreen() {
       <StepperHeader currentStep={step} />
       <View style={styles.body}>{stepContent[step]()}</View>
       {/* Bottom Action Bar */}
-      <View style={[styles.bottomBar, { backgroundColor: cardBg, borderTopColor: border }]}>
+      <View style={[styles.bottomBar, { backgroundColor: cardBg, borderTopColor: border, paddingBottom: Math.max(insets.bottom, 12) }]}>
         {step > 0 ? (
           <Pressable onPress={() => setStep(step - 1)} style={[styles.navBtn, { borderColor: Palette.primary }]}>
             <ChevronLeft size={18} color={Palette.primary} />
@@ -436,8 +497,9 @@ export default function NewDocumentScreen() {
       <CatalogModal
         visible={showCatalogModal}
         onClose={() => setShowCatalogModal(false)}
-        onSelect={(selectedItem) => {
-          setItems([...items, { ...selectedItem, quantity: 1 }]);
+        onSelect={(selectedItems) => {
+          const newItems = selectedItems.map(item => ({ ...item, quantity: 1 }));
+          setItems([...items, ...newItems]);
           setShowCatalogModal(false);
         }}
       />
@@ -449,6 +511,29 @@ export default function NewDocumentScreen() {
         onClose={() => {
           setMsgConfig((prev) => ({ ...prev, visible: false }));
           if (msgConfig.onCloseAction) msgConfig.onCloseAction();
+        }}
+      />
+      <SuccessModal
+        visible={successConfig.visible}
+        title={successConfig.title}
+        message={successConfig.message}
+        secondaryBtnText="Envoyer par Email"
+        onSecondaryAction={async () => {
+          if (generatedPdfPath && selectedClient && createdDocId) {
+            const subject = `${type === 'quote' ? 'Devis' : 'Facture'} ${lastDocNumber} - AD Services`;
+            const body = `Bonjour ${selectedClient.name},\n\nVeuillez trouver ci-joint votre ${type === 'quote' ? 'devis' : 'facture'} ${lastDocNumber}.\n\nCordialement,\nAD Services`;
+            await emailPdf(generatedPdfPath, selectedClient.email || '', subject, body);
+            setSuccessConfig(prev => ({ ...prev, visible: false }));
+            router.replace(`/documents/${createdDocId}`);
+          }
+        }}
+        onClose={() => {
+          setSuccessConfig(prev => ({ ...prev, visible: false }));
+          if (createdDocId) {
+            router.replace(`/documents/${createdDocId}`);
+          } else {
+            router.back();
+          }
         }}
       />
     </View>
