@@ -264,7 +264,7 @@ export default function NewDocumentScreen() {
   // ─── Step 0: Client Selection ───
   function renderClientStep() {
     return (
-      <View style={styles.stepContainer}>
+      <KeyboardAwareScrollView style={styles.stepContainer} contentContainerStyle={{ paddingBottom: 60 }} keyboardShouldPersistTaps="handled" enableOnAndroid={true}>
         <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>
           <View style={[styles.searchBox, { backgroundColor: cardBg, borderColor: border, flex: 1, marginBottom: 0 }]}>
             <Search size={16} color={textSecondary} />
@@ -283,31 +283,39 @@ export default function NewDocumentScreen() {
             <Plus size={20} color="#FFF" />
           </Pressable>
         </View>
-        <FlatList
-          data={filteredClients}
-          keyExtractor={c => String(c.id)}
-          renderItem={({ item }) => (
-            <Pressable
-              onPress={() => setSelectedClient(item)}
-              style={[styles.clientRow, {
-                backgroundColor: selectedClient?.id === item.id ? (isDark ? '#FFFFFF10' : Palette.primary + '15') : cardBg,
-                borderColor: selectedClient?.id === item.id ? (isDark ? '#FFFFFF' : Palette.primary) : border,
-              }]}
-            >
-              <View style={[styles.clientAvatar, { backgroundColor: isDark ? Palette.slate[700] : Palette.primary + '20' }]}>
-                <Text style={[styles.avatarText, { color: isDark ? '#FFF' : Palette.primary }]}>
-                  {item.name.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2)}
-                </Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.clientName, { color: textPrimary }]}>{item.name}</Text>
-                {item.phone && <Text style={[styles.clientMeta, { color: textSecondary }]}>{item.phone}</Text>}
-              </View>
-              {selectedClient?.id === item.id && <Check size={20} color={isDark ? '#FFF' : Palette.primary} />}
-            </Pressable>
-          )}
-        />
-      </View>
+        
+        {filteredClients.map((item) => (
+          <Pressable
+            key={item.id}
+            onPress={() => setSelectedClient(item)}
+            style={[styles.clientRow, {
+              backgroundColor: selectedClient?.id === item.id ? (isDark ? '#FFFFFF10' : Palette.primary + '15') : cardBg,
+              borderColor: selectedClient?.id === item.id ? (isDark ? '#FFFFFF' : Palette.primary) : border,
+            }]}
+          >
+            <View style={[styles.clientAvatar, { backgroundColor: isDark ? Palette.slate[700] : Palette.primary + '20' }]}>
+              <Text style={[styles.avatarText, { color: isDark ? '#FFF' : Palette.primary }]}>
+                {item.name.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2)}
+              </Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.clientName, { color: textPrimary }]}>{item.name}</Text>
+              {item.phone && <Text style={[styles.clientMeta, { color: textSecondary }]}>{item.phone}</Text>}
+            </View>
+            {selectedClient?.id === item.id && <Check size={20} color={isDark ? '#FFF' : Palette.primary} />}
+          </Pressable>
+        ))}
+
+        <View style={[styles.inlineNav, { marginTop: 20 }]}>
+          <View style={{ flex: 1 }} />
+          <Pressable onPress={() => setStep(step + 1)} style={[styles.navBtnFilled, { backgroundColor: Palette.primary }]}>
+            <Text style={styles.navBtnFilledText}>Suivant</Text>
+            <ChevronRight size={18} color="#FFF" />
+          </Pressable>
+        </View>
+      </KeyboardAwareScrollView>
+    );
+  }
     );
   }
 
@@ -337,9 +345,15 @@ export default function NewDocumentScreen() {
           <Plus size={18} color={Palette.primary} />
           <Text style={[styles.addBtnText, { color: Palette.primary }]}>Ajouter une prestation</Text>
         </Pressable>
-        <View style={[styles.totalBar, { backgroundColor: cardBg, borderColor: border }]}>
-          <Text style={[styles.totalLabel, { color: textSecondary }]}>Sous-total prestations</Text>
-          <Text style={[styles.totalValue, { color: Palette.primary }]}>{subtotal.toFixed(2)} €</Text>
+        <View style={[styles.inlineNav, { marginTop: 20 }]}>
+          <Pressable onPress={() => setStep(step - 1)} style={[styles.navBtn, { borderColor: Palette.primary }]}>
+            <ChevronLeft size={18} color={Palette.primary} />
+            <Text style={[styles.navBtnText, { color: Palette.primary }]}>Précédent</Text>
+          </Pressable>
+          <Pressable onPress={() => setStep(step + 1)} style={[styles.navBtnFilled, { backgroundColor: Palette.primary }]}>
+            <Text style={styles.navBtnFilledText}>Suivant</Text>
+            <ChevronRight size={18} color="#FFF" />
+          </Pressable>
         </View>
       </KeyboardAwareScrollView>
     );
@@ -411,6 +425,17 @@ export default function NewDocumentScreen() {
           <Text style={[styles.totalLabel, { color: textSecondary }]}>Sous-total matériels</Text>
           <Text style={[styles.totalValue, { color: Palette.primary }]}>{materialsTotal.toFixed(2)} €</Text>
         </View>
+
+        <View style={[styles.inlineNav, { marginTop: 30 }]}>
+          <Pressable onPress={() => setStep(step - 1)} style={[styles.navBtn, { borderColor: Palette.primary }]}>
+            <ChevronLeft size={18} color={Palette.primary} />
+            <Text style={[styles.navBtnText, { color: Palette.primary }]}>Précédent</Text>
+          </Pressable>
+          <Pressable onPress={() => setStep(step + 1)} style={[styles.navBtnFilled, { backgroundColor: Palette.primary }]}>
+            <Text style={styles.navBtnFilledText}>Suivant</Text>
+            <ChevronRight size={18} color="#FFF" />
+          </Pressable>
+        </View>
       </KeyboardAwareScrollView>
     );
   }
@@ -461,12 +486,19 @@ export default function NewDocumentScreen() {
           </View>
         </View>
         {/* Totals */}
-        <View style={[styles.totalsCard, { backgroundColor: cardBg, borderColor: border }]}>
-          <View style={styles.totalRow}><Text style={[styles.totalRowLabel, { color: textSecondary }]}>Prestations</Text><Text style={[styles.totalRowVal, { color: textPrimary }]}>{subtotal.toFixed(2)} €</Text></View>
-          <View style={styles.totalRow}><Text style={[styles.totalRowLabel, { color: textSecondary }]}>Matériels</Text><Text style={[styles.totalRowVal, { color: textPrimary }]}>{materialsTotal.toFixed(2)} €</Text></View>
-          {discount > 0 && <View style={styles.totalRow}><Text style={[styles.totalRowLabel, { color: Palette.danger }]}>Remise</Text><Text style={[styles.totalRowVal, { color: Palette.danger }]}>-{discount.toFixed(2)} €</Text></View>}
-          <View style={[styles.divider, { backgroundColor: border }]} />
-          <View style={styles.totalRow}><Text style={[styles.grandTotalLabel, { color: textPrimary }]}>TOTAL NET</Text><Text style={[styles.grandTotalVal, { color: Palette.danger }]}>{total.toFixed(2)} €</Text></View>
+        <View style={[styles.inlineNav, { marginBottom: 20 }]}>
+          <Pressable onPress={() => setStep(step - 1)} style={[styles.navBtn, { borderColor: Palette.primary }]}>
+            <ChevronLeft size={18} color={Palette.primary} />
+            <Text style={[styles.navBtnText, { color: Palette.primary }]}>Précédent</Text>
+          </Pressable>
+          <Pressable onPress={() => {
+            if (!selectedClient) return showMessage('Erreur', 'Veuillez sélectionner un client.', 'error');
+            if (items.length === 0 && materials.length === 0) return showMessage('Erreur', 'Ajoutez au moins une prestation ou un matériel.', 'error');
+            handleSubmit();
+          }} style={[styles.navBtnFilled, { backgroundColor: Palette.success }]}>
+            <Text style={styles.navBtnFilledText}>{editId ? 'Enregistrer' : (isQuote ? 'Créer Devis' : 'Créer Facture')}</Text>
+            <Check size={18} color="#FFF" />
+          </Pressable>
         </View>
       </KeyboardAwareScrollView>
     );
@@ -478,31 +510,6 @@ export default function NewDocumentScreen() {
     <View style={[styles.container, { backgroundColor: bg }]}>
       <StepperHeader currentStep={step} />
       <View style={styles.body}>{stepContent[step]()}</View>
-      {/* Bottom Action Bar */}
-      <View style={[styles.bottomBar, { backgroundColor: cardBg, borderTopColor: border, paddingBottom: Math.max(insets.bottom, 12) }]}>
-        {step > 0 ? (
-          <Pressable onPress={() => setStep(step - 1)} style={[styles.navBtn, { borderColor: Palette.primary }]}>
-            <ChevronLeft size={18} color={Palette.primary} />
-            <Text style={[styles.navBtnText, { color: Palette.primary }]}>Précédent</Text>
-          </Pressable>
-        ) : <View style={{ flex: 1 }} />}
-
-        {step < 3 ? (
-          <Pressable onPress={() => setStep(step + 1)} style={[styles.navBtnFilled, { backgroundColor: Palette.primary }]}>
-            <Text style={styles.navBtnFilledText}>Suivant</Text>
-            <ChevronRight size={18} color="#FFF" />
-          </Pressable>
-        ) : (
-          <Pressable onPress={() => {
-            if (!selectedClient) return showMessage('Erreur', 'Veuillez sélectionner un client.', 'error');
-            if (items.length === 0 && materials.length === 0) return showMessage('Erreur', 'Ajoutez au moins une prestation ou un matériel.', 'error');
-            handleSubmit();
-          }} style={[styles.navBtnFilled, { backgroundColor: Palette.success }]}>
-            <Check size={18} color="#FFF" />
-            <Text style={styles.navBtnFilledText}>Valider</Text>
-          </Pressable>
-        )}
-      </View>
 
       <CatalogModal
         visible={showCatalogModal}
@@ -590,4 +597,5 @@ const styles = StyleSheet.create({
   navBtnFilled: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 12, borderRadius: 12 },
   navBtnFilledText: { color: '#FFF', fontSize: 14, fontWeight: '700' },
   addSmallBtn: { width: 46, height: 46, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  inlineNav: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginTop: 20 },
 });
