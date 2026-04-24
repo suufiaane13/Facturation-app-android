@@ -28,7 +28,7 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/logo-app.png"
+      "favicon": "./assets/logo-padded.png"
     },
     "updates": {
       "url": "https://u.expo.dev/9919a532-1e0b-4f26-81b0-25c902b6f0bb"
@@ -40,7 +40,15 @@
       "expo-router",
       "expo-sqlite",
       "expo-mail-composer",
-      "expo-updates"
+      "expo-updates",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "gradleJVMArgs": "-Xmx2048m -XX:MaxMetaspaceSize=1024m"
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
