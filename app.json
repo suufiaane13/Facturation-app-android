@@ -45,7 +45,7 @@
         "expo-build-properties",
         {
           "android": {
-            "gradleJVMArgs": "-Xmx2048m -XX:MaxMetaspaceSize=1024m"
+            "gradleJVMArgs": "-Xmx4096m -XX:MaxMetaspaceSize=2048m"
           }
         }
       ]
