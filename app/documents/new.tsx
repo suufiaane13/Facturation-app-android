@@ -316,8 +316,6 @@ export default function NewDocumentScreen() {
       </KeyboardAwareScrollView>
     );
   }
-    );
-  }
 
   // ─── Step 1: Prestations ───
   function renderPrestationsStep() {

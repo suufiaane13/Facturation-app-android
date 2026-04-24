@@ -12,6 +12,7 @@ import { registerForPushNotificationsAsync } from '../utils/notifications';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import { ThemeProvider as AppThemeProvider } from '@/components/ThemeProvider';
+import UpdateHandler from '@/components/UpdateHandler';
 import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
 import { db } from '@/db/client';
 import migrations from '@/drizzle/migrations';
@@ -60,22 +61,7 @@ export default function RootLayout() {
     loadImages();
   }, []);
 
-  useEffect(() => {
-    async function onFetchUpdateAsync() {
-      try {
-        const update = await Updates.checkForUpdateAsync();
-        if (update.isAvailable) {
-          await Updates.fetchUpdateAsync();
-          await Updates.reloadAsync();
-        }
-      } catch (e) {
-        console.log('Update check failed', e);
-      }
-    }
-    if (!__DEV__) {
-      onFetchUpdateAsync();
-    }
-  }, []);
+
 
   useEffect(() => {
     async function checkOnboarding() {
@@ -147,6 +133,7 @@ function RootLayoutNav({ shouldOnboard }: { shouldOnboard: boolean }) {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
+      <UpdateHandler />
     <ThemeProvider value={isDark ? CustomDarkTheme : CustomDefaultTheme}>
       <View style={{ flex: 1, backgroundColor: isDark ? '#1E1E1A' : '#F8FAFC' }}>
         <Stack

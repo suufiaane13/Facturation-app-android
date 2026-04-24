@@ -31,7 +31,7 @@
       "favicon": "./assets/logo-padded.png"
     },
     "updates": {
-      "url": "https://u.expo.dev/9919a532-1e0b-4f26-81b0-25c902b6f0bb"
+      "url": "https://u.expo.dev/f82f804d-9ac3-40d8-bb8c-695dd2d71ab3"
     },
     "runtimeVersion": {
       "policy": "appVersion"
@@ -56,9 +56,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "9919a532-1e0b-4f26-81b0-25c902b6f0bb"
+        "projectId": "f82f804d-9ac3-40d8-bb8c-695dd2d71ab3"
       }
     },
-    "owner": "suufiaane"
+    "owner": "suufiaane13"
   }
 }
