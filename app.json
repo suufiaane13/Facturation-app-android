@@ -4,31 +4,31 @@
     "slug": "facturation-simba",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/logo-app.png",
+    "icon": "./assets/logo-padded.png",
     "scheme": "factures",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/logo-app.png",
       "resizeMode": "contain",
-      "backgroundColor": "#FFFFFF"
+      "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.suufiaane.factures"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/logo-app.png",
-        "backgroundColor": "#FFFFFF"
+        "foregroundImage": "./assets/logo-padded.png",
+        "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false,
-      "package": "com.suufiaane.factures"
+      "package": "com.suufiaane.factures",
+      "edgeToEdgeEnabled": true
     },
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/logo-light.png"
+      "favicon": "./assets/logo-app.png"
     },
     "updates": {
       "url": "https://u.expo.dev/9919a532-1e0b-4f26-81b0-25c902b6f0bb"
