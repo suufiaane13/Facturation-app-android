@@ -15,6 +15,7 @@ import CatalogModal from '@/components/CatalogModal';
 import MessageModal from '@/components/MessageModal';
 import SuccessModal from '@/components/SuccessModal';
 import { generatePDF, emailPdf } from '@/utils/pdfGenerator';
+import { scheduleInvoiceReminder } from '@/utils/notifications';
 import * as Haptics from 'expo-haptics';
 
 type LineItem = { title: string; description: string | null; unitPrice: number; quantity: number };
@@ -231,6 +232,15 @@ export default function NewDocumentScreen() {
       setCreatedDocId(docId);
       const pdfPath = await generatePDF(docId, isQuote ? 'quote' : 'invoice', 'none');
       if (pdfPath) setGeneratedPdfPath(pdfPath);
+
+      // Programmation automatique du rappel
+      const reminderDate = new Date();
+      if (isQuote) {
+        reminderDate.setDate(reminderDate.getDate() + 3);
+      } else {
+        reminderDate.setDate(reminderDate.getDate() + 14);
+      }
+      await scheduleInvoiceReminder(docNumber, selectedClient.name, reminderDate);
 
       showMessage(
         isQuote ? 'Devis créé' : 'Facture créée',

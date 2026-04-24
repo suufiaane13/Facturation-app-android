@@ -123,7 +123,7 @@ export default function OnboardingScreen() {
       <Animated.View style={[styles.proHeroContainer, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
         <View style={[styles.proHeroCircle, { backgroundColor: 'transparent' }]}>
           <Image 
-            source={require('../assets/logo-app.png')} 
+            source={require('../assets/logo-padded.png')} 
             style={{ width: 140, height: 140, resizeMode: 'contain' }} 
           />
         </View>

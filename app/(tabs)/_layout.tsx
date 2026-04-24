@@ -52,8 +52,8 @@ export default function TabLayout() {
         },
         headerTitle: () => (
           <Image 
-            source={isDark ? require('@/assets/logo-dark.png') : require('@/assets/logo-light.png')} 
-            style={{ width: 240, height: 54, marginLeft: -64 }} 
+            source={require('../../assets/logo-padded.png')} 
+            style={{ width: 140, height: 40, marginLeft: -35 }} 
             resizeMode="contain" 
           />
         ),

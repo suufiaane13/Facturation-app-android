@@ -8,6 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState, useCallback } from 'react';
 import { Asset } from 'expo-asset';
 import 'react-native-reanimated';
+import { registerForPushNotificationsAsync } from '../utils/notifications';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import { ThemeProvider as AppThemeProvider } from '@/components/ThemeProvider';
@@ -48,9 +49,7 @@ export default function RootLayout() {
     async function loadImages() {
       try {
         await Asset.loadAsync([
-          require('../assets/logo-light.png'),
-          require('../assets/logo-dark.png'),
-          require('../assets/logo-app.png')
+          require('../assets/logo-padded.png')
         ]);
       } catch (e) {
         console.warn('Failed to load assets', e);
@@ -117,6 +116,7 @@ function RootLayoutNav({ shouldOnboard }: { shouldOnboard: boolean }) {
     if (shouldOnboard) {
       router.replace('/onboarding');
     }
+    registerForPushNotificationsAsync();
   }, [shouldOnboard]);
   const isDark = colorScheme === 'dark';
   const insets = useSafeAreaInsets();

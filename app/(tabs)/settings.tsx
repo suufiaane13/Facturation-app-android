@@ -246,8 +246,8 @@ export default function SettingsScreen() {
         {/* --- ONGLET ENTREPRISE --- */}
         {activeTab === 'company' && (
           <View>
-            <View style={[styles.iconHeader, { backgroundColor: Palette.primary + '15' }]}>
-              <Building2 size={32} color={Palette.primary} />
+            <View style={[styles.iconHeader, { backgroundColor: 'transparent' }]}>
+              <Image source={require('../../assets/logo-padded.png')} style={{ width: 60, height: 60 }} resizeMode="contain" />
             </View>
             <Text style={[styles.heading, { color: isDark ? Palette.slate[50] : Palette.slate[900] }]}>
               Informations Entreprise
@@ -264,7 +264,7 @@ export default function SettingsScreen() {
                     {form.logoBase64 ? (
                       <Image source={{ uri: form.logoBase64 }} style={[styles.logoImage, { borderColor: isDark ? Palette.slate[700] : Palette.slate[200] }]} />
                     ) : (
-                    <Image source={require('@/assets/logo-app.png')} style={[styles.logoImage, { borderColor: isDark ? Palette.slate[700] : Palette.slate[200], backgroundColor: '#FFF' }]} resizeMode="contain" />
+                    <Image source={require('../../assets/logo-padded.png')} style={[styles.logoImage, { borderColor: isDark ? Palette.slate[700] : Palette.slate[200], backgroundColor: '#FFF' }]} resizeMode="contain" />
                     )}
                   </Pressable>
                   <View style={{ flex: 1, gap: 10 }}>
@@ -535,7 +535,7 @@ export default function SettingsScreen() {
         {form.logoBase64 ? (
           <Image source={{ uri: form.logoBase64 }} style={styles.previewImage} resizeMode="contain" />
         ) : (
-          <Image source={require('@/assets/logo-app.png')} style={[styles.previewImage, { backgroundColor: '#FFF', borderRadius: 20 }]} resizeMode="contain" />
+          <Image source={require('../../assets/logo-padded.png')} style={[styles.previewImage, { backgroundColor: '#FFF', borderRadius: 20 }]} resizeMode="contain" />
         )}
       </View>
     </Modal>
